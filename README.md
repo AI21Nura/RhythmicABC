@@ -13,10 +13,10 @@ The *Rhythmic Alphabet* is a unique system where each letter of the alphabet cor
 
 ### Functional Requirements (To-Do)
 
-- [ ] Display rhythmic alphabet grid
-- [ ] Show pattern structure for each letter
-- [ ] Play rhythmic pattern for each letter
-- [ ] Highlight currently playing pattern element
+- [x] Display rhythmic alphabet grid
+- [x] Show pattern structure for each letter
+- [x] Play rhythmic pattern for each letter
+- [x] Highlight currently playing pattern element
 - [ ] Play the full alphabet sequence
 - [ ] Playback control (Start/Stop)
 - [ ] BPM control with current value display
