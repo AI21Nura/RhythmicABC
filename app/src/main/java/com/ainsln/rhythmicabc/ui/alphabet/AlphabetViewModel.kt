@@ -95,6 +95,11 @@ class AlphabetViewModel(
         }
     }
 
+    fun toggleGhostNotes(enable: Boolean){
+        player.toggleGhostNotes(enable)
+        _uiState.update { oldState -> oldState.copy(enableGhostNotes = enable) }
+    }
+
     fun changeAlphabetTab(tabIndex: Int) {
         _uiState.update { oldState -> oldState.copy(currentAlphabetTabIndex = tabIndex) }
     }

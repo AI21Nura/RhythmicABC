@@ -5,7 +5,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface RhythmicPlayer {
 
-    var bpm: Int
+    val bpm: Int
+    val enableGhostNotes: Boolean
 
     fun playLetter(letter: RhythmicLetter) : Flow<Int>
 
@@ -17,7 +18,9 @@ interface RhythmicPlayer {
 
     fun resume()
 
-    suspend fun setBpm(bpm: Int)
+    fun setBpm(bpm: Int)
+
+    fun toggleGhostNotes(enable: Boolean)
 
     fun release()
 

@@ -21,19 +21,12 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
     private var isPaused = false
 
     override var bpm: Int = initBpm
+        private set
+    override var enableGhostNotes: Boolean = true
+        private set
+
     private val snareId: Int = soundPool.load(context, R.raw.snare, 1)
-
-    private suspend fun pausableDelay(timeMillis: Long) {
-        var remaining = timeMillis
-
-        while (remaining > 0) {
-            pauseMutex.withLock { }
-            val beforeDelay = System.currentTimeMillis()
-            delay(10)
-            val afterDelay = System.currentTimeMillis()
-            remaining -= (afterDelay - beforeDelay)
-        }
-    }
+    private val ghostSnareId: Int = soundPool.load(context, R.raw.snare_ghost, 1)
 
     override fun playLetter(letter: RhythmicLetter): Flow<Int> = channelFlow {
         currentJob = this.coroutineContext.job
@@ -42,21 +35,24 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
         }
     }
 
-    override fun playAlphabet(alphabet: List<RhythmicLetter>): Flow<Pair<RhythmicLetter, Int>> = channelFlow {
-        currentJob = this.coroutineContext.job
-        alphabet.forEach { letter ->
-            playPatternLoop(letter) { index ->
-                send(Pair(letter, index))
+    override fun playAlphabet(alphabet: List<RhythmicLetter>): Flow<Pair<RhythmicLetter, Int>> =
+        channelFlow {
+            currentJob = this.coroutineContext.job
+            alphabet.forEach { letter ->
+                playPatternLoop(letter) { index ->
+                    send(Pair(letter, index))
+                }
             }
         }
-    }
 
     private suspend fun playPatternLoop(letter: RhythmicLetter, sendData: suspend (Int) -> Unit) {
         letter.pattern.forEachIndexed { index, sound ->
             sendData(index)
-            if (sound) {
+            if (sound)
                 soundPool.play(snareId, 1f, 1f, 1, 0, 1f)
-            }
+            else if (enableGhostNotes)
+                soundPool.play(ghostSnareId, 0.15f, 0.15f, 1, 0, 1f)
+
             pausableDelay(calculateDelay(bpm))
         }
     }
@@ -78,13 +74,29 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
         resetPauseState()
     }
 
-    override suspend fun setBpm(bpm: Int) {
+    override fun setBpm(bpm: Int) {
         this.bpm = bpm
+    }
+
+    override fun toggleGhostNotes(enable: Boolean) {
+        enableGhostNotes = enable
     }
 
     override fun release() {
         stop()
         soundPool.release()
+    }
+
+    private suspend fun pausableDelay(timeMillis: Long) {
+        var remaining = timeMillis
+
+        while (remaining > 0) {
+            pauseMutex.withLock { }
+            val beforeDelay = System.currentTimeMillis()
+            delay(10)
+            val afterDelay = System.currentTimeMillis()
+            remaining -= (afterDelay - beforeDelay)
+        }
     }
 
     private fun calculateDelay(bpm: Int): Long {

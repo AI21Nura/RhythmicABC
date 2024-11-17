@@ -3,7 +3,9 @@ package com.ainsln.rhythmicabc.ui.alphabet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -12,6 +14,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -46,6 +49,7 @@ fun AlphabetScreen(
         onResumeClick = viewModel::resumePlayer,
         onBpmChange = viewModel::setBpm,
         onTabChange = viewModel::changeAlphabetTab,
+        onGhostNotesChange = viewModel::toggleGhostNotes,
         modifier = modifier
     )
 }
@@ -60,6 +64,7 @@ fun AlphabetScreenContent(
     onResumeClick: () -> Unit,
     onBpmChange: (Int) -> Unit,
     onTabChange: (Int) -> Unit,
+    onGhostNotesChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { AlphabetTabs.entries.size }
@@ -91,6 +96,11 @@ fun AlphabetScreenContent(
             BpmSlider(
                 value = uiState.bpm,
                 onValueChanged = onBpmChange
+            )
+
+            GhostSwitch(
+                enableGhostNotes = uiState.enableGhostNotes,
+                onValueChange = onGhostNotesChange
             )
 
             TabRow(selectedTabIndex = uiState.currentAlphabetTabIndex) {
@@ -133,8 +143,6 @@ fun AlphabetScreenContent(
             }
         }
     }
-
-
 }
 
 @Composable
@@ -144,7 +152,6 @@ fun BpmSlider(
     minValue: Float = 40f,
     maxValue: Float = 300f
 ) {
-
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -155,6 +162,25 @@ fun BpmSlider(
             value = value.toFloat(),
             onValueChange = { onValueChanged(it.toInt()) },
             valueRange = minValue..maxValue
+        )
+    }
+}
+
+@Composable
+fun GhostSwitch(
+    enableGhostNotes: Boolean,
+    onValueChange: (Boolean) -> Unit
+){
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+    ) {
+        Text(text = "Play Ghost Notes")
+        Spacer(Modifier.weight(1f))
+        Switch(
+            checked = enableGhostNotes,
+            onCheckedChange = { onValueChange(it) }
         )
     }
 }
@@ -195,7 +221,8 @@ fun AlphabetScreenContentPreview() {
             onTabChange = {},
             onStopClick = {},
             onPauseClick = {},
-            onResumeClick = {}
+            onResumeClick = {},
+            onGhostNotesChange = {}
         )
     }
 }
