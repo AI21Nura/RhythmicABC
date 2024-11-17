@@ -5,5 +5,7 @@ interface RhythmicAlphabet {
 
     fun getTernaryLetters(): List<RhythmicLetter>
 
+    fun getAll(): List<RhythmicLetter>
+
     fun getLetter(name: String): RhythmicLetter
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -25,6 +26,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ainsln.rhythmicabc.data.source.DefaultRhythmicAlphabet
 import com.ainsln.rhythmicabc.data.source.RhythmicLetter
+import com.ainsln.rhythmicabc.ui.alphabet.components.FabItem
+import com.ainsln.rhythmicabc.ui.alphabet.components.PlaybackMultiFab
 import com.ainsln.rhythmicabc.ui.alphabet.components.RhythmicLetterBox
 import com.ainsln.rhythmicabc.ui.theme.RhythmicABCTheme
 
@@ -37,7 +40,10 @@ fun AlphabetScreen(
     AlphabetScreenContent(
         uiState = uiState,
         onLetterClick = viewModel::playLetter,
+        onPlayClick = viewModel::playAlphabet,
         onStopClick = viewModel::stopPlayer,
+        onPauseClick = viewModel::pausePlayer,
+        onResumeClick = viewModel::resumePlayer,
         onBpmChange = viewModel::setBpm,
         onTabChange = viewModel::changeAlphabetTab,
         modifier = modifier
@@ -48,7 +54,10 @@ fun AlphabetScreen(
 fun AlphabetScreenContent(
     uiState: AlphabetUiState,
     onLetterClick: (RhythmicLetter) -> Unit,
+    onPlayClick: () -> Unit,
     onStopClick: () -> Unit,
+    onPauseClick: () -> Unit,
+    onResumeClick: () -> Unit,
     onBpmChange: (Int) -> Unit,
     onTabChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -62,14 +71,27 @@ fun AlphabetScreenContent(
         onTabChange(pagerState.currentPage)
     }
 
-    Column(modifier.fillMaxSize()) {
+    Scaffold(
+        floatingActionButton = {
+            PlaybackMultiFab(
+                playbackState = uiState.alphabetPlaybackState,
+                onFabClick = { fabItem ->
+                    when(fabItem){
+                        FabItem.Play -> onPlayClick()
+                        FabItem.Stop -> onStopClick()
+                        FabItem.Pause -> onPauseClick()
+                        FabItem.Resume -> onResumeClick()
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(modifier.fillMaxSize().padding(innerPadding)) {
 
-
-        BpmSlider(
-            value = uiState.bpm,
-            onValueChanged = onBpmChange
-        )
-
+            BpmSlider(
+                value = uiState.bpm,
+                onValueChanged = onBpmChange
+            )
 
             TabRow(selectedTabIndex = uiState.currentAlphabetTabIndex) {
                 AlphabetTabs.entries.forEachIndexed { index, tab ->
@@ -84,7 +106,9 @@ fun AlphabetScreenContent(
             HorizontalPager(
                 state = pagerState,
                 verticalAlignment = Alignment.Top,
-                modifier = Modifier.padding(vertical = 8.dp).weight(1f)
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .weight(1f)
             ) { pageIndex ->
                 when (pageIndex) {
                     AlphabetTabs.Binary.index -> {
@@ -107,8 +131,10 @@ fun AlphabetScreenContent(
                 }
 
             }
-
+        }
     }
+
+
 }
 
 @Composable
@@ -155,7 +181,6 @@ fun AlphabetGrid(
             }
         }
     }
-
 }
 
 @Preview(showBackground = true)
@@ -164,10 +189,13 @@ fun AlphabetScreenContentPreview() {
     RhythmicABCTheme {
         AlphabetScreenContent(
             uiState = AlphabetUiState(binaryLetters = DefaultRhythmicAlphabet.getBinaryLetters()),
-            onLetterClick =  {},
+            onLetterClick = {},
+            onPlayClick = {},
             onBpmChange = {},
             onTabChange = {},
-            onStopClick = {}
+            onStopClick = {},
+            onPauseClick = {},
+            onResumeClick = {}
         )
     }
 }

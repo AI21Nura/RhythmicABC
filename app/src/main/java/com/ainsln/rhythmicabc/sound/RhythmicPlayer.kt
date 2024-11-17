@@ -9,9 +9,15 @@ interface RhythmicPlayer {
 
     fun playLetter(letter: RhythmicLetter) : Flow<Int>
 
-    suspend fun setBpm(bpm: Int)
+    fun playAlphabet(alphabet: List<RhythmicLetter>) : Flow<Pair<RhythmicLetter, Int>>
 
     fun stop()
+
+    suspend fun pause()
+
+    fun resume()
+
+    suspend fun setBpm(bpm: Int)
 
     fun release()
 

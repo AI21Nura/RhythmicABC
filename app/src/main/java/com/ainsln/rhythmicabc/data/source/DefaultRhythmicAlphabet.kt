@@ -33,6 +33,8 @@ object DefaultRhythmicAlphabet : RhythmicAlphabet {
         RhythmicLetter(name = "X", pattern = listOf(false, false, false))
     )
 
+    override fun getAll(): List<RhythmicLetter> = letters
+
     override fun getBinaryLetters() = letters.subList(0, BINARY_PATTERNS_NUMBER)
 
     override fun getTernaryLetters() = letters.subList(BINARY_PATTERNS_NUMBER, letters.size)

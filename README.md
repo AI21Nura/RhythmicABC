@@ -17,9 +17,9 @@ The *Rhythmic Alphabet* is a unique system where each letter of the alphabet cor
 - [x] Show pattern structure for each letter
 - [x] Play rhythmic pattern for each letter
 - [x] Highlight currently playing pattern element
-- [ ] Play the full alphabet sequence
-- [ ] Playback control (Start/Stop)
-- [ ] BPM control with current value display
+- [x] Play the full alphabet sequence
+- [x] Playback control (Start/Stop)
+- [x] BPM control with current value display
 
 ---
 
