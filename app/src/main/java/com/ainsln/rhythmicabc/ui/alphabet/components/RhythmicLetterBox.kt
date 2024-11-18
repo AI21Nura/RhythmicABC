@@ -69,7 +69,9 @@ fun RhythmicLetterBox(
 @Composable
 fun PatternElement(
     sound: Boolean,
-    isPlaying: Boolean
+    isPlaying: Boolean,
+    beatColor: Color = Color.Red,
+    quietColor: Color = MaterialTheme.colorScheme.onSurface
 ){
     Box(
         contentAlignment = Alignment.Center,
@@ -86,11 +88,11 @@ fun PatternElement(
     ) {
         if (sound){
             Spacer(modifier = Modifier.size(16.dp).drawBehind {
-                drawCircle(color = Color.Red)
+                drawCircle(color = beatColor)
             })
         } else {
             Spacer(modifier = Modifier.size(width = 16.dp, height = 4.dp).drawBehind {
-                drawRect(color = Color.Black)
+                drawRect(color = quietColor)
             })
         }
     }

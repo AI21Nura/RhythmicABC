@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 class AlphabetViewModel(
     private val alphabet: RhythmicAlphabet,
     private val player: RhythmicPlayer
-) : ViewModel() {
+) : ViewModel(), PlaybackControls {
 
     private val _uiState: MutableStateFlow<AlphabetUiState> = MutableStateFlow(
         AlphabetUiState(
@@ -33,7 +33,7 @@ class AlphabetViewModel(
     val uiState: StateFlow<AlphabetUiState> = _uiState
 
     fun playLetter(letter: RhythmicLetter) {
-        stopPlayer()
+        stop()
         viewModelScope.launch {
             player.playLetter(letter)
                 .onStart { updateCurrentLetter(letter) }
@@ -47,7 +47,7 @@ class AlphabetViewModel(
     }
 
     fun playAlphabet() {
-        stopPlayer()
+        stop()
         viewModelScope.launch {
             player.playAlphabet(alphabet = alphabet.getAll())
                 .onStart { updatePlaybackState(PlaybackState.Playing) }
@@ -70,7 +70,7 @@ class AlphabetViewModel(
         }
     }
 
-    fun stopPlayer() {
+    override fun stop() {
         if (_uiState.value.currentLetter != null){
             player.stop()
             updateCurrentLetter(null)
@@ -78,26 +78,33 @@ class AlphabetViewModel(
         }
     }
 
-    fun pausePlayer(){
+    override fun pause(){
         updatePlaybackState(PlaybackState.Paused)
-        viewModelScope.launch { player.pause() }
+        player.pause()
     }
 
-    fun resumePlayer(){
+    override fun resume(){
         updatePlaybackState(PlaybackState.Playing)
         player.resume()
     }
 
-    fun setBpm(newBpm: Int) {
+    override fun setBpm(newBpm: Int) {
         _uiState.update { oldState -> oldState.copy(bpm = newBpm) }
         viewModelScope.launch {
             player.setBpm(newBpm)
         }
     }
 
-    fun toggleGhostNotes(enable: Boolean){
+    override fun toggleGhostNotes(enable: Boolean){
         player.toggleGhostNotes(enable)
         _uiState.update { oldState -> oldState.copy(enableGhostNotes = enable) }
+    }
+
+    override fun setLetterRepeatCount(count: Int){
+        if (count in 1..100){
+            _uiState.update { oldState -> oldState.copy(letterRepeatCount = count) }
+            player.setLetterRepeatCount(count)
+        }
     }
 
     fun changeAlphabetTab(tabIndex: Int) {

@@ -23,12 +23,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ainsln.rhythmicabc.R
 import com.ainsln.rhythmicabc.data.source.DefaultRhythmicAlphabet
 import com.ainsln.rhythmicabc.data.source.RhythmicLetter
+import com.ainsln.rhythmicabc.ui.alphabet.components.CounterControl
 import com.ainsln.rhythmicabc.ui.alphabet.components.FabItem
 import com.ainsln.rhythmicabc.ui.alphabet.components.PlaybackMultiFab
 import com.ainsln.rhythmicabc.ui.alphabet.components.RhythmicLetterBox
@@ -44,12 +47,8 @@ fun AlphabetScreen(
         uiState = uiState,
         onLetterClick = viewModel::playLetter,
         onPlayClick = viewModel::playAlphabet,
-        onStopClick = viewModel::stopPlayer,
-        onPauseClick = viewModel::pausePlayer,
-        onResumeClick = viewModel::resumePlayer,
-        onBpmChange = viewModel::setBpm,
+        playbackControls = viewModel,
         onTabChange = viewModel::changeAlphabetTab,
-        onGhostNotesChange = viewModel::toggleGhostNotes,
         modifier = modifier
     )
 }
@@ -59,12 +58,8 @@ fun AlphabetScreenContent(
     uiState: AlphabetUiState,
     onLetterClick: (RhythmicLetter) -> Unit,
     onPlayClick: () -> Unit,
-    onStopClick: () -> Unit,
-    onPauseClick: () -> Unit,
-    onResumeClick: () -> Unit,
-    onBpmChange: (Int) -> Unit,
     onTabChange: (Int) -> Unit,
-    onGhostNotesChange: (Boolean) -> Unit,
+    playbackControls: PlaybackControls,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState { AlphabetTabs.entries.size }
@@ -83,24 +78,32 @@ fun AlphabetScreenContent(
                 onFabClick = { fabItem ->
                     when(fabItem){
                         FabItem.Play -> onPlayClick()
-                        FabItem.Stop -> onStopClick()
-                        FabItem.Pause -> onPauseClick()
-                        FabItem.Resume -> onResumeClick()
+                        FabItem.Stop -> playbackControls.stop()
+                        FabItem.Pause -> playbackControls.pause()
+                        FabItem.Resume -> playbackControls.resume()
                     }
                 }
             )
         }
     ) { innerPadding ->
-        Column(modifier.fillMaxSize().padding(innerPadding)) {
+        Column(
+            modifier
+                .fillMaxSize()
+                .padding(innerPadding)) {
 
             BpmSlider(
                 value = uiState.bpm,
-                onValueChanged = onBpmChange
+                onValueChanged = playbackControls::setBpm
             )
 
             GhostSwitch(
                 enableGhostNotes = uiState.enableGhostNotes,
-                onValueChange = onGhostNotesChange
+                onValueChange = playbackControls::toggleGhostNotes
+            )
+
+            RepeatControl(
+                value = uiState.letterRepeatCount,
+                onValueChange = playbackControls::setLetterRepeatCount
             )
 
             TabRow(selectedTabIndex = uiState.currentAlphabetTabIndex) {
@@ -150,14 +153,14 @@ fun BpmSlider(
     value: Int,
     onValueChanged: (Int) -> Unit,
     minValue: Float = 40f,
-    maxValue: Float = 300f
+    maxValue: Float = 250f
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-        Text(text = "BPM = $value")
+        Text(text = stringResource(R.string.bpm, value))
         Slider(
             value = value.toFloat(),
             onValueChange = { onValueChanged(it.toInt()) },
@@ -174,14 +177,33 @@ fun GhostSwitch(
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
     ) {
-        Text(text = "Play Ghost Notes")
+        Text(text = stringResource(R.string.ghost_label))
         Spacer(Modifier.weight(1f))
         Switch(
             checked = enableGhostNotes,
             onCheckedChange = { onValueChange(it) }
         )
+    }
+}
+
+@Composable
+fun RepeatControl(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+){
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp)
+    ) {
+        Text(stringResource(R.string.repeat_count))
+        Spacer(Modifier.weight(1f))
+        CounterControl(value, onValueChange)
     }
 }
 
@@ -217,12 +239,15 @@ fun AlphabetScreenContentPreview() {
             uiState = AlphabetUiState(binaryLetters = DefaultRhythmicAlphabet.getBinaryLetters()),
             onLetterClick = {},
             onPlayClick = {},
-            onBpmChange = {},
             onTabChange = {},
-            onStopClick = {},
-            onPauseClick = {},
-            onResumeClick = {},
-            onGhostNotesChange = {}
+            playbackControls = object : PlaybackControls {
+                override fun pause() {}
+                override fun stop() {}
+                override fun resume() {}
+                override fun setBpm(bpm: Int) {}
+                override fun toggleGhostNotes(enable: Boolean) {}
+                override fun setLetterRepeatCount(count: Int) {}
+            }
         )
     }
 }

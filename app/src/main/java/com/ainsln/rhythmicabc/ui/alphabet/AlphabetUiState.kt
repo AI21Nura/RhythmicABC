@@ -10,5 +10,6 @@ data class AlphabetUiState(
     val currentLetter: RhythmicLetter? = null,
     val currentLetterElementIndex: Int = 0,
     val bpm: Int = AlphabetViewModel.INIT_BPM,
-    val enableGhostNotes: Boolean = true
+    val enableGhostNotes: Boolean = true,
+    val letterRepeatCount: Int = 1
 )

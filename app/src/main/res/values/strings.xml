@@ -5,4 +5,12 @@
     <string name="stop">Stop</string>
     <string name="pause">Pause</string>
     <string name="resume">Resume</string>
+    <string name="subtract">Subtract</string>
+    <string name="add">Add</string>
+    <string name="repeat_count">Times to play each letter</string>
+    <string name="bpm">BPM = %1$s</string>
+    <string name="ghost_label">Play Ghost Notes</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="reps_input">Enter the number of reps:</string>
 </resources>
