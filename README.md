@@ -23,6 +23,13 @@ The *Rhythmic Alphabet* is a unique system where each letter of the alphabet cor
 
 ---
 
+### Demo
+
+The app plays the alphabet with rhythm visualization. Each letter is accompanied by a sound.
+![](assets/demo.gif)
+
+---
+
 ### Technology Stack and Implementation
 
 - **UI**: Jetpack Compose for UI creation
