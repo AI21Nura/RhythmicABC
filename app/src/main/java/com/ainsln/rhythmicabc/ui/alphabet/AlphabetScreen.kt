@@ -28,7 +28,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ainsln.rhythmicabc.R
 import com.ainsln.rhythmicabc.data.source.DefaultRhythmicAlphabet
 import com.ainsln.rhythmicabc.data.source.RhythmicLetter
@@ -41,6 +40,8 @@ import com.ainsln.rhythmicabc.ui.theme.RhythmicABCTheme
 
 @Composable
 fun AlphabetScreen(
+    onStartService: () -> Unit,
+    onStopService: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AlphabetViewModel = hiltViewModel()
 ) {
@@ -48,7 +49,14 @@ fun AlphabetScreen(
     AlphabetScreenContent(
         uiState = uiState,
         onLetterClick = viewModel::playLetter,
-        onPlayClick = viewModel::playAlphabet,
+        onPlayClick = {
+            viewModel.playAlphabet()
+            onStartService()
+        },
+        onStopClick = {
+            viewModel.stop()
+            onStopService()
+        },
         playbackControls = viewModel,
         onTabChange = viewModel::changeAlphabetTab,
         modifier = modifier
@@ -60,6 +68,7 @@ fun AlphabetScreenContent(
     uiState: AlphabetUiState,
     onLetterClick: (RhythmicLetter) -> Unit,
     onPlayClick: () -> Unit,
+    onStopClick: () -> Unit,
     onTabChange: (Int) -> Unit,
     playbackControls: PlaybackControls,
     modifier: Modifier = Modifier,
@@ -80,7 +89,7 @@ fun AlphabetScreenContent(
                 onFabClick = { fabItem ->
                     when(fabItem){
                         FabItem.Play -> onPlayClick()
-                        FabItem.Stop -> playbackControls.stop()
+                        FabItem.Stop -> onStopClick()
                         FabItem.Pause -> playbackControls.pause()
                         FabItem.Resume -> playbackControls.resume()
                     }
@@ -241,6 +250,7 @@ fun AlphabetScreenContentPreview() {
             uiState = AlphabetUiState(binaryLetters = DefaultRhythmicAlphabet.getBinaryLetters()),
             onLetterClick = {},
             onPlayClick = {},
+            onStopClick = {},
             onTabChange = {},
             playbackControls = object : PlaybackControls {
                 override fun pause() {}

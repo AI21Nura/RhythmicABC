@@ -20,6 +20,7 @@ The *Rhythmic Alphabet* is a unique system where each letter of the alphabet cor
 - [x] Play the full alphabet sequence
 - [x] Playback control (Start/Stop)
 - [x] BPM control with current value display
+- [x] Track playback progress in notification panel
 
 ---
 
@@ -33,8 +34,9 @@ The app plays the alphabet with rhythm visualization. Each letter is accompanied
 
 ### Technology Stack and Implementation
 
-- **UI**: Jetpack Compose for UI creation
-- **Audio**: `SoundPool` class for efficient playback of short audio patterns
+- **UI**: Jetpack Compose
+- **Audio**: `SoundPool`
 - **DI**: Hilt
-- **Architecture**: Single-module project structure for easier development
-- **Coroutines**: Using Kotlin Coroutines for managing audio
+- **Architecture**: Single-module project
+- **Coroutines**: Coroutines
+- **Background Services**: Foreground Service with notification controls

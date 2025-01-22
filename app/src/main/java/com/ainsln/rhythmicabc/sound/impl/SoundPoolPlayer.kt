@@ -117,7 +117,7 @@ class SoundPoolPlayer @Inject constructor(
 
     override fun resume() {
         resetPauseState()
-        _playbackState.update { PlaybackState.Paused }
+        _playbackState.update { PlaybackState.Playing }
     }
 
     override fun setBpm(bpm: Int) {
