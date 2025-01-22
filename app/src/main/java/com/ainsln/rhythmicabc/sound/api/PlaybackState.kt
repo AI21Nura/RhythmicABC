@@ -1,7 +1,7 @@
-package com.ainsln.rhythmicabc.ui.alphabet
+package com.ainsln.rhythmicabc.sound.api
 
 sealed interface PlaybackState {
     data object Playing : PlaybackState
     data object Paused : PlaybackState
-    data object Stopped : PlaybackState
+    data object Idle : PlaybackState
 }

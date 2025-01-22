@@ -1,21 +1,28 @@
-package com.ainsln.rhythmicabc.sound
+package com.ainsln.rhythmicabc.sound.impl
 
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
 import com.ainsln.rhythmicabc.R
 import com.ainsln.rhythmicabc.data.source.RhythmicLetter
+import com.ainsln.rhythmicabc.sound.api.PlaybackState
+import com.ainsln.rhythmicabc.sound.api.RhythmicPlayer
+import com.ainsln.rhythmicabc.sound.model.CurrentPlayback
+import com.ainsln.rhythmicabc.sound.model.PlayerSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.yield
 import kotlin.math.min
 
-class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
+class SoundPoolPlayer(context: Context) : RhythmicPlayer {
 
     private val audioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -23,54 +30,65 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
         .build()
 
     private val soundPool = SoundPool.Builder().setAudioAttributes(audioAttributes).build()
+
     private var currentJob: Job? = null
-
     private val pauseMutex = Mutex()
-    private var isPaused = false
-
-    override var bpm: Int = initBpm
-        private set
-    override var enableGhostNotes: Boolean = true
-        private set
-    override var letterRepeatCount: Int = 1
-        private set
 
     private val snareId: Int = soundPool.load(context, R.raw.snare, 1)
     private val ghostSnareId: Int = soundPool.load(context, R.raw.snare_ghost, 1)
 
-
     private var baseTimeNanos = 0L
     private var tickCount = 0
 
-    override fun playLetter(letter: RhythmicLetter): Flow<Int> = channelFlow {
-        currentJob = this.coroutineContext.job
+    private val _settings = MutableStateFlow(PlayerSettings())
+    override val settings = _settings.asStateFlow()
+
+    private val _playbackState = MutableStateFlow<PlaybackState>(PlaybackState.Idle)
+    override val state = _playbackState.asStateFlow()
+
+    private val _currentPlayback = MutableStateFlow(CurrentPlayback())
+    override val currentPlayback = _currentPlayback.asStateFlow()
+
+
+    override fun playLetter(letter: RhythmicLetter) = play {
         playPatternLoop(letter) { index ->
-            send(index)
+            _currentPlayback.update {
+                CurrentPlayback(letter = letter, elementIndex = index)
+            }
         }
     }
 
-    override fun playAlphabet(alphabet: List<RhythmicLetter>): Flow<Pair<RhythmicLetter, Int>> =
-        channelFlow {
-            currentJob = this.coroutineContext.job
-            alphabet.forEach { letter ->
-                playPatternLoop(letter) { index ->
-                    send(Pair(letter, index))
+    override fun playAlphabet(alphabet: List<RhythmicLetter>) = play {
+        alphabet.forEach { letter ->
+            playPatternLoop(letter) { index ->
+                _currentPlayback.update {
+                    CurrentPlayback(letter = letter, elementIndex = index)
                 }
             }
         }
+    }
+
+    private fun play(block: suspend () -> Unit){
+        currentJob = CoroutineScope(Dispatchers.IO).launch {
+            _playbackState.update { PlaybackState.Playing }
+            block()
+            _playbackState.update { PlaybackState.Idle }
+            _currentPlayback.update { it.copy(letter = null) }
+        }
+    }
 
     private suspend fun playPatternLoop(letter: RhythmicLetter, sendData: suspend (Int) -> Unit) {
         baseTimeNanos = System.nanoTime()
         tickCount = 0
         var repeat = 0
 
-        while (repeat++ < letterRepeatCount) {
+        while (repeat++ < settings.value.letterRepeatCount) {
             letter.pattern.forEachIndexed { index, sound ->
                 val startTime = System.nanoTime()
                 sendData(index)
                 if (sound)
                     soundPool.play(snareId, 1f, 1f, 1, 0, 1f)
-                else if (enableGhostNotes)
+                else if (settings.value.enableGhostNotes)
                     soundPool.play(ghostSnareId, 0.15f, 0.15f, 1, 0, 1f)
 
                 preciseDelay(startTime)
@@ -78,35 +96,37 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
         }
     }
 
-
-    //channel will be closed when job is cancelled
     override fun stop() {
         currentJob?.cancel()
         currentJob = null
         resetPauseState()
+        _playbackState.update { PlaybackState.Idle }
+        _currentPlayback.update { it.copy(letter = null) }
     }
 
 
     override fun pause() {
-        isPaused = true
         pauseMutex.tryLock()
+        _playbackState.update { PlaybackState.Paused }
     }
 
 
     override fun resume() {
         resetPauseState()
+        _playbackState.update { PlaybackState.Paused }
     }
 
     override fun setBpm(bpm: Int) {
-        this.bpm = bpm
+        _settings.update { it.copy(bpm = bpm) }
     }
 
     override fun toggleGhostNotes(enable: Boolean) {
-        enableGhostNotes = enable
+        _settings.update { it.copy(enableGhostNotes = enable) }
     }
 
     override fun setLetterRepeatCount(count: Int) {
-        letterRepeatCount = count
+        _settings.update { it.copy(letterRepeatCount = count) }
+
     }
 
     override fun release() {
@@ -115,7 +135,7 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
     }
 
     private suspend fun preciseDelay(startTimeNanos: Long) {
-        val intervalNanos = calculateDelay(bpm) * 1_000_000L
+        val intervalNanos = calculateDelay(settings.value.bpm) * 1_000_000L
 
         tickCount++
         val elapsedTime = System.nanoTime() - startTimeNanos
@@ -138,17 +158,14 @@ class SoundPoolPlayer(context: Context, initBpm: Int) : RhythmicPlayer {
         }
     }
 
-
     private fun calculateDelay(bpm: Int): Long {
         val beatDuration = 60_000.0 / bpm
         return beatDuration.toLong()
     }
 
     private fun resetPauseState() {
-        isPaused = false
         if (pauseMutex.isLocked) {
             pauseMutex.unlock()
         }
     }
-
 }

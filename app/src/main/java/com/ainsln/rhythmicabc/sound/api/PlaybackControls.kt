@@ -1,4 +1,4 @@
-package com.ainsln.rhythmicabc.ui.alphabet
+package com.ainsln.rhythmicabc.sound.api
 
 interface PlaybackControls {
     fun pause()

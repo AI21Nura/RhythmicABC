@@ -19,7 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ainsln.rhythmicabc.R
-import com.ainsln.rhythmicabc.ui.alphabet.PlaybackState
+import com.ainsln.rhythmicabc.sound.api.PlaybackState
 
 enum class FabItem(@StringRes val titleRes: Int, val icon: ImageVector) {
     Play(titleRes = R.string.play, icon = Icons.Outlined.PlayCircle),
@@ -75,7 +75,7 @@ fun PlaybackMultiFab(
     onFabClick: (FabItem) -> Unit
 ) {
     when (playbackState) {
-        is PlaybackState.Stopped -> {
+        is PlaybackState.Idle -> {
             MultiFAB(
                 mainFab = FabItem.Play,
                 isExpanded = false,
