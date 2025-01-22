@@ -1,24 +1,22 @@
 package com.ainsln.rhythmicabc.ui.alphabet
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
-import com.ainsln.rhythmicabc.RhythmicAbcApplication
 import com.ainsln.rhythmicabc.data.source.RhythmicAlphabet
 import com.ainsln.rhythmicabc.data.source.RhythmicLetter
 import com.ainsln.rhythmicabc.sound.api.PlaybackControls
 import com.ainsln.rhythmicabc.sound.api.RhythmicPlayer
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
-class AlphabetViewModel(
+@HiltViewModel
+class AlphabetViewModel @Inject constructor(
     private val alphabet: RhythmicAlphabet,
     private val player: RhythmicPlayer
 ) : ViewModel(), PlaybackControls {
@@ -96,12 +94,5 @@ class AlphabetViewModel(
 
     companion object {
         const val INIT_BPM = 60
-
-        val FACTORY: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val container = (this[APPLICATION_KEY] as RhythmicAbcApplication).container
-                AlphabetViewModel(alphabet = container.alphabet, player = container.player)
-            }
-        }
     }
 }

@@ -35,6 +35,6 @@ The app plays the alphabet with rhythm visualization. Each letter is accompanied
 
 - **UI**: Jetpack Compose for UI creation
 - **Audio**: `SoundPool` class for efficient playback of short audio patterns
-- **DI**: Manual dependency injection within the app container
+- **DI**: Hilt
 - **Architecture**: Single-module project structure for easier development
 - **Coroutines**: Using Kotlin Coroutines for managing audio

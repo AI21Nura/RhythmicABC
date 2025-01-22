@@ -9,6 +9,7 @@ import com.ainsln.rhythmicabc.sound.api.PlaybackState
 import com.ainsln.rhythmicabc.sound.api.RhythmicPlayer
 import com.ainsln.rhythmicabc.sound.model.CurrentPlayback
 import com.ainsln.rhythmicabc.sound.model.PlayerSettings
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,9 +21,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.yield
+import javax.inject.Inject
 import kotlin.math.min
 
-class SoundPoolPlayer(context: Context) : RhythmicPlayer {
+class SoundPoolPlayer @Inject constructor(
+    @ApplicationContext context: Context
+) : RhythmicPlayer {
 
     private val audioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_MEDIA)
