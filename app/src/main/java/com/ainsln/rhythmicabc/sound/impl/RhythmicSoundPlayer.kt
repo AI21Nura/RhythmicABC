@@ -1,15 +1,12 @@
 package com.ainsln.rhythmicabc.sound.impl
 
-import android.content.Context
-import android.media.AudioAttributes
-import android.media.SoundPool
-import com.ainsln.rhythmicabc.R
 import com.ainsln.rhythmicabc.data.source.RhythmicLetter
 import com.ainsln.rhythmicabc.sound.api.PlaybackState
 import com.ainsln.rhythmicabc.sound.api.RhythmicPlayer
+import com.ainsln.rhythmicabc.sound.impl.engine.SoundEngine
 import com.ainsln.rhythmicabc.sound.model.CurrentPlayback
 import com.ainsln.rhythmicabc.sound.model.PlayerSettings
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.ainsln.rhythmicabc.sound.utils.TimeProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -24,22 +21,20 @@ import kotlinx.coroutines.yield
 import javax.inject.Inject
 import kotlin.math.min
 
-class SoundPoolPlayer @Inject constructor(
-    @ApplicationContext context: Context
+/**
+ * This class handles the playback of rhythmic patterns using audio samples, simulating a metronome.
+ * It plays a sequence of sounds at the specified beats per minute (BPM) with a given pattern.
+ *
+ * Important: The accuracy of the timing is not perfect due to system limitations.
+ * This class provides a basic rhythm playback feature, but it is not suitable for precision-based metronome applications.
+ */
+class RhythmicSoundPlayer @Inject constructor(
+    private val soundEngine: SoundEngine,
+    private val timeProvider: TimeProvider
 ) : RhythmicPlayer {
-
-    private val audioAttributes = AudioAttributes.Builder()
-        .setUsage(AudioAttributes.USAGE_MEDIA)
-        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-        .build()
-
-    private val soundPool = SoundPool.Builder().setAudioAttributes(audioAttributes).build()
 
     private var currentJob: Job? = null
     private val pauseMutex = Mutex()
-
-    private val snareId: Int = soundPool.load(context, R.raw.snare, 1)
-    private val ghostSnareId: Int = soundPool.load(context, R.raw.snare_ghost, 1)
 
     private var baseTimeNanos = 0L
     private var tickCount = 0
@@ -52,7 +47,6 @@ class SoundPoolPlayer @Inject constructor(
 
     private val _currentPlayback = MutableStateFlow(CurrentPlayback())
     override val currentPlayback = _currentPlayback.asStateFlow()
-
 
     override fun playLetter(letter: RhythmicLetter) = play {
         playPatternLoop(letter) { index ->
@@ -73,29 +67,30 @@ class SoundPoolPlayer @Inject constructor(
     }
 
     private fun play(block: suspend () -> Unit){
-        currentJob = CoroutineScope(Dispatchers.IO).launch {
+        currentJob = CoroutineScope(Dispatchers.Default).launch {
             _playbackState.update { PlaybackState.Playing }
             block()
+        }
+        currentJob?.invokeOnCompletion {
+            resetPauseState()
             _playbackState.update { PlaybackState.Idle }
             _currentPlayback.update { it.copy(letter = null) }
         }
     }
 
     private suspend fun playPatternLoop(letter: RhythmicLetter, sendData: suspend (Int) -> Unit) {
-        baseTimeNanos = System.nanoTime()
+        baseTimeNanos = timeProvider.getCurrentTimeNanos()
         tickCount = 0
         var repeat = 0
 
         while (repeat++ < settings.value.letterRepeatCount) {
             letter.pattern.forEachIndexed { index, sound ->
-                val startTime = System.nanoTime()
                 sendData(index)
                 if (sound)
-                    soundPool.play(snareId, 1f, 1f, 1, 0, 1f)
+                    soundEngine.playSound()
                 else if (settings.value.enableGhostNotes)
-                    soundPool.play(ghostSnareId, 0.15f, 0.15f, 1, 0, 1f)
-
-                preciseDelay(startTime)
+                    soundEngine.playGhost()
+                preciseDelay()
             }
         }
     }
@@ -103,9 +98,6 @@ class SoundPoolPlayer @Inject constructor(
     override fun stop() {
         currentJob?.cancel()
         currentJob = null
-        resetPauseState()
-        _playbackState.update { PlaybackState.Idle }
-        _currentPlayback.update { it.copy(letter = null) }
     }
 
 
@@ -135,20 +127,19 @@ class SoundPoolPlayer @Inject constructor(
 
     override fun release() {
         stop()
-        soundPool.release()
+        soundEngine.release()
     }
 
-    private suspend fun preciseDelay(startTimeNanos: Long) {
+    private suspend fun preciseDelay() {
         val intervalNanos = calculateDelay(settings.value.bpm) * 1_000_000L
 
         tickCount++
-        val elapsedTime = System.nanoTime() - startTimeNanos
-        val targetTimeNanos = baseTimeNanos + (tickCount * intervalNanos) - elapsedTime
+        val targetTimeNanos = baseTimeNanos + (tickCount * intervalNanos)
 
-        var remainingNanos = targetTimeNanos - System.nanoTime()
+        var remainingNanos = targetTimeNanos - timeProvider.getCurrentTimeNanos()
         while (remainingNanos > 0) {
             pauseMutex.withLock { }
-            remainingNanos = targetTimeNanos - System.nanoTime()
+            remainingNanos = targetTimeNanos - timeProvider.getCurrentTimeNanos()
             val remainingMillis = remainingNanos / 1_000_000L
             if (remainingMillis > 0)
                 delay(min(remainingMillis, 10))
@@ -156,8 +147,9 @@ class SoundPoolPlayer @Inject constructor(
                 yield()
         }
 
-        if (-remainingNanos > intervalNanos / 2) {
-            baseTimeNanos = System.nanoTime()
+        val overshoot = timeProvider.getCurrentTimeNanos() - targetTimeNanos
+        if (overshoot > intervalNanos / 2) {
+            baseTimeNanos = timeProvider.getCurrentTimeNanos()
             tickCount = 0
         }
     }
