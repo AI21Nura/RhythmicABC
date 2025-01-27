@@ -9,7 +9,9 @@ import com.ainsln.rhythmicabc.sound.model.PlayerSettings
 import com.ainsln.rhythmicabc.sound.utils.TimeProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +35,7 @@ class RhythmicSoundPlayer @Inject constructor(
     private val timeProvider: TimeProvider
 ) : RhythmicPlayer {
 
-    private var currentJob: Job? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val pauseMutex = Mutex()
 
     private var baseTimeNanos = 0L
@@ -67,11 +69,10 @@ class RhythmicSoundPlayer @Inject constructor(
     }
 
     private fun play(block: suspend () -> Unit){
-        currentJob = CoroutineScope(Dispatchers.Default).launch {
+        scope.launch {
             _playbackState.update { PlaybackState.Playing }
             block()
-        }
-        currentJob?.invokeOnCompletion {
+        }.invokeOnCompletion {
             resetPauseState()
             _playbackState.update { PlaybackState.Idle }
             _currentPlayback.update { it.copy(letter = null) }
@@ -96,8 +97,7 @@ class RhythmicSoundPlayer @Inject constructor(
     }
 
     override fun stop() {
-        currentJob?.cancel()
-        currentJob = null
+        scope.coroutineContext.cancelChildren()
     }
 
 
@@ -128,6 +128,7 @@ class RhythmicSoundPlayer @Inject constructor(
     override fun release() {
         stop()
         soundEngine.release()
+        scope.cancel()
     }
 
     private suspend fun preciseDelay() {
